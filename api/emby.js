@@ -1,17 +1,26 @@
 import axios from 'axios';
 
-const embyApiUrl = 'https://7.6080808.xyz'; // 替换为你的 Emby 服务器地址
-const embyApiKey = 'YOUR_EMBY_TMDB_API_KEY';     // 替换为 Emby TMDB 插件 API key
+const embyApiUrl = 'https://7.6080808.xyz'; // CF 隧道公网地址
+const embyApiKey = 'YOUR_EMBY_TMDB_API_KEY'; // Emby TMDB 插件 API Key
 
 export default async function handler(req, res) {
   try {
+    // 获取路径参数，例如 /api/emby/movies/550 => endpoint = ['movies','550']
     const { endpoint } = req.query;
-    const response = await axios.get(`${embyApiUrl}/${endpoint}`, {
-      headers: { 'X-Emby-Token': embyApiKey },
+    const path = Array.isArray(endpoint) ? endpoint.join('/') : endpoint;
+
+    const response = await axios.get(`${embyApiUrl}/${path}`, {
+      headers: {
+        'X-Emby-Token': embyApiKey,
+        'User-Agent': 'Mozilla/5.0',
+        'Host': '7.6080808.xyz'
+      },
+      timeout: 10000
     });
+
     res.status(200).json(response.data);
   } catch (error) {
-    console.error(error.message);
+    console.error('Emby API Error:', error.message);
     res.status(500).send('Error fetching Emby API');
   }
 }
