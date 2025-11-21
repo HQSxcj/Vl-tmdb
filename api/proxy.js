@@ -1,94 +1,108 @@
-import axios from 'axios';
-import http from 'http';
-import https from 'https';
+const axios = require('axios');
+const TMDB_BASE_URL = 'https://api.themoviedb.org';
 
-const axiosInstance = axios.create({
-  timeout: 15000,
-  maxRedirects: 5,
-  httpAgent: new http.Agent({ keepAlive: true }),
-  httpsAgent: new https.Agent({ keepAlive: true }),
-  headers: {
-    'User-Agent': 'Mozilla/5.0 (compatible; Emby-TMDB-Proxy/1.0)'
-  }
-});
+// 创建缓存对象
+const cache = new Map();
+// 缓存过期时间（10分钟）
+const CACHE_DURATION = 10 * 60 * 1000;
+// 最大缓存条目数
+const MAX_CACHE_SIZE = 1000;
 
-// 移除 ConcurrentQueue 类以简化
-
-export default async function handler(req, res) {
-  try {
-    const { paths, path, url, type } = req.query;
-
-    // CORS 设置
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-    if (req.method === 'OPTIONS') {
-      return res.status(200).end();
-    }
-
-    if (!paths && !path && !url) {
-      return res.status(400).json({ 
-        error: 'Missing parameters',
-        usage: {
-          single_tmdb: '/api/proxy?type=tmdb&path=movie/550',
-          single_image: '/api/proxy?type=image&path=8UlWHLMpgZm9bx6QYh0NFoq67TZ.jpg',
-          search: '/api/proxy?type=tmdb&path=search/movie?query=Avengers'
+// 缓存清理函数
+function cleanExpiredCache() {
+    const now = Date.now();
+    for (const [key, value] of cache.entries()) {
+        if (now > value.expiry) {
+            cache.delete(key);
         }
-      });
     }
-
-    // 单个请求处理
-    if (type === 'tmdb' && path) {
-      const response = await axiosInstance.get(`https://api.themoviedb.org/3/${path}`, {
-        params: { 
-          api_key: process.env.TMDB_API_KEY,
-          ...req.query // 包含其他查询参数
-        }
-      });
-      return res.status(200).json(response.data);
-    } 
-    else if (type === 'image' && path) {
-      // 直接代理图片数据，而不是重定向
-      const cleanPath = path.replace(/^\//, '');
-      const imageUrl = `https://image.tmdb.org/t/p/original/${cleanPath}`;
-      
-      console.log('Fetching image from:', imageUrl);
-      
-      const response = await axiosInstance.get(imageUrl, {
-        responseType: 'arraybuffer'
-      });
-      
-      // 设置正确的图片 Content-Type
-      const contentType = response.headers['content-type'] || 'image/jpeg';
-      res.setHeader('Content-Type', contentType);
-      res.setHeader('Cache-Control', 'public, max-age=86400'); // 缓存24小时
-      
-      return res.status(200).send(response.data);
-    }
-    else if (url) {
-      const response = await axiosInstance.get(url, { responseType: 'arraybuffer' });
-      res.setHeader('Content-Type', response.headers['content-type'] || 'application/octet-stream');
-      return res.status(200).send(response.data);
-    }
-    else {
-      return res.status(400).json({ 
-        error: 'Invalid parameters'
-      });
-    }
-  } catch (error) {
-    console.error('Proxy error:', error.message);
-    
-    let statusCode = 500;
-    if (error.response && error.response.status) {
-      statusCode = error.response.status;
-    } else if (error.code === 'ECONNABORTED') {
-      statusCode = 504;
-    }
-    
-    return res.status(statusCode).json({ 
-      error: 'Proxy server error',
-      message: error.message
-    });
-  }
 }
+
+// 检查缓存大小并清理最旧的条目
+function checkCacheSize() {
+    if (cache.size > MAX_CACHE_SIZE) {
+        // 将缓存条目转换为数组并按过期时间排序
+        const entries = Array.from(cache.entries());
+        entries.sort((a, b) => a[1].expiry - b[1].expiry);
+
+        // 删除最旧的条目，直到缓存大小达到限制
+        const deleteCount = cache.size - MAX_CACHE_SIZE;
+        entries.slice(0, deleteCount).forEach(([key]) => cache.delete(key));
+
+        console.log(`Cleaned ${deleteCount} old cache entries`);
+    }
+}
+
+// 定期清理缓存（每10分钟）
+setInterval(cleanExpiredCache, CACHE_DURATION);
+
+module.exports = async (req, res) => {
+    // 设置 CORS 头
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    // 处理 OPTIONS 请求
+    if (req.method === 'OPTIONS') {
+        res.status(200).end();
+        return;
+    }
+
+    try {
+        const fullPath = req.url;
+        const authHeader = req.headers.authorization;
+
+        // 缓存键只使用请求路径
+        const cacheKey = fullPath;
+
+        // 检查缓存
+        if (cache.has(cacheKey)) {
+            const cachedData = cache.get(cacheKey);
+            if (Date.now() < cachedData.expiry) {
+                console.log('Cache hit:', fullPath);
+                return res.status(200).json(cachedData.data);
+            } else {
+                cache.delete(cacheKey);
+            }
+        }
+
+        // 构建 TMDB 请求 URL
+        const tmdbUrl = `${TMDB_BASE_URL}${fullPath}`;
+
+        // 构建请求配置
+        const config = {};
+
+        // 只有在存在 Authorization header 时才添加
+        if (authHeader) {
+            config.headers = {
+                'Authorization': authHeader
+            };
+        }
+
+        // 发送请求到 TMDB
+        const response = await axios.get(tmdbUrl, config);
+
+        // 只有响应状态码为 200 时才缓存
+        if (response.status === 200) {
+            // 在添加新缓存前检查缓存大小
+            checkCacheSize();
+
+            cache.set(cacheKey, {
+                data: response.data,
+                expiry: Date.now() + CACHE_DURATION
+            });
+            console.log('Cache miss and stored:', fullPath);
+        } else {
+            console.log('Response not cached due to non-200 status:', response.status);
+        }
+
+        // 返回响应
+        res.status(response.status).json(response.data);
+    } catch (error) {
+        console.error('TMDB API error:', error);
+        res.status(error.response?.status || 500).json({
+            error: error.message,
+            details: error.response?.data
+        });
+    }
+};
