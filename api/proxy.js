@@ -61,6 +61,20 @@ export default async function handler(req, res) {
       return res.status(200).end();
     }
 
+    // 如果没有提供任何参数，返回使用说明
+    if (!paths && !path && !url) {
+      return res.status(400).json({ 
+        error: 'Missing parameters',
+        usage: {
+          batch_tmdb: '/api/proxy?type=tmdb&paths[]=movie/550&paths[]=movie/551',
+          batch_image: '/api/proxy?type=image&paths[]=abc123.jpg&paths[]=def456.jpg',
+          single_tmdb: '/api/proxy?type=tmdb&path=movie/550',
+          single_image: '/api/proxy?type=image&path=w500/abc123.jpg',
+          generic_proxy: '/api/proxy?url=https://api.example.com/data'
+        }
+      });
+    }
+
     // 批量请求处理
     if (paths) {
       const pathArray = Array.isArray(paths) ? paths : [paths];
@@ -107,19 +121,21 @@ export default async function handler(req, res) {
     else {
       return res.status(400).json({ 
         error: 'Invalid parameters',
-        usage: {
-          batch_tmdb: '/api/proxy?type=tmdb&paths[]=movie/550&paths[]=movie/551',
-          batch_image: '/api/proxy?type=image&paths[]=abc123.jpg&paths[]=def456.jpg',
-          single_tmdb: '/api/proxy?type=tmdb&path=movie/550',
-          single_image: '/api/proxy?type=image&path=w500/abc123.jpg',
-          generic_proxy: '/api/proxy?url=https://api.example.com/data'
-        }
+        message: 'Missing required parameters: type and path/url'
       });
     }
   } catch (error) {
     console.error('Proxy error:', error.message);
-    const status = error.response?.status || (error.code === 'ECONNABORTED' ? 504 : 500);
-    return res.status(status).json({ 
+    
+    // 修复这里的错误处理
+    let statusCode = 500;
+    if (error.response && error.response.status) {
+      statusCode = error.response.status;
+    } else if (error.code === 'ECONNABORTED') {
+      statusCode = 504;
+    }
+    
+    return res.status(statusCode).json({ 
       error: 'Proxy server error',
       message: error.message
     });
