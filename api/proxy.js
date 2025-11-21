@@ -1,3 +1,5 @@
+import axios from 'axios';
+
 const API_ORIGIN = 'https://api.themoviedb.org';
 const IMAGE_ORIGIN = 'https://image.tmdb.org';
 
@@ -14,6 +16,13 @@ function cleanExpiredCache() {
 }
 
 setInterval(cleanExpiredCache, CACHE_DURATION);
+
+const axiosInstance = axios.create({
+    timeout: 15000,
+    headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; TMDB-Proxy/1.0)'
+    }
+});
 
 export default async function handler(request, response) {
     const url = new URL(request.url, `https://${request.headers.host}`);
@@ -42,7 +51,7 @@ export default async function handler(request, response) {
         const path = searchParams.get('path');
         
         if (type === 'tmdb' && path) {
-            const target = `${API_ORIGIN}/3/${path}${url.search.replace(`type=tmdb&path=${path}`, '').replace('&&', '&')}`;
+            const target = `${API_ORIGIN}/3/${path}`;
             return await proxyRequest(request, response, target, false);
         }
 
@@ -85,49 +94,24 @@ async function proxyRequest(incomingRequest, response, targetUrl, isImage) {
         }
     }
 
-    const hopByHop = new Set([
-        'connection',
-        'keep-alive',
-        'transfer-encoding',
-        'proxy-connection',
-        'upgrade',
-        'proxy-authenticate',
-        'proxy-authorization',
-        'te',
-        'trailers',
-        'host'
-    ]);
-
-    const headers = {};
-    for (const [key, value] of Object.entries(incomingRequest.headers)) {
-        if (!hopByHop.has(key.toLowerCase())) {
-            headers[key] = value;
-        }
-    }
-
-    headers['User-Agent'] = 'Mozilla/5.0 (compatible; TMDB-Proxy/1.0)';
-
     try {
-        const fetchResponse = await fetch(targetUrl, {
+        const options = {
             method: incomingRequest.method,
-            headers: headers,
-            redirect: isImage ? 'follow' : 'manual'
-        });
-
-        if (!fetchResponse.ok) {
-            throw new Error(`HTTP ${fetchResponse.status}: ${fetchResponse.statusText}`);
-        }
-
-        for (const [key, value] of fetchResponse.headers) {
-            if (!hopByHop.has(key.toLowerCase())) {
-                response.setHeader(key, value);
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; TMDB-Proxy/1.0)'
             }
+        };
+
+        if (isImage) {
+            options.responseType = 'arraybuffer';
         }
+
+        const axiosResponse = await axiosInstance.get(targetUrl, options);
 
         response.setHeader('Access-Control-Allow-Origin', '*');
 
-        if (!isImage && fetchResponse.status === 200) {
-            const data = await fetchResponse.json();
+        if (!isImage && axiosResponse.status === 200) {
+            const data = axiosResponse.data;
             
             if (cache.size > 1000) {
                 const entries = Array.from(cache.entries());
@@ -145,16 +129,19 @@ async function proxyRequest(incomingRequest, response, targetUrl, isImage) {
         }
 
         if (isImage) {
-            const buffer = await fetchResponse.arrayBuffer();
+            response.setHeader('Content-Type', axiosResponse.headers['content-type'] || 'image/jpeg');
             response.setHeader('Cache-Control', 'public, max-age=86400');
-            return response.status(200).send(Buffer.from(buffer));
+            return response.status(200).send(axiosResponse.data);
         }
 
-        const data = await fetchResponse.text();
-        return response.status(fetchResponse.status).send(data);
+        return response.status(axiosResponse.status).json(axiosResponse.data);
 
     } catch (error) {
-        console.error('Fetch error:', error);
-        throw error;
+        console.error('Request error:', error.message);
+        const status = error.response?.status || 500;
+        return response.status(status).json({
+            error: 'Proxy server error',
+            message: error.message
+        });
     }
 }
