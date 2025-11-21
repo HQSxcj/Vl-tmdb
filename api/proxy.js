@@ -1,11 +1,9 @@
-import axios from 'axios';
+const API_ORIGIN = 'https://api.themoviedb.org';
+const IMAGE_ORIGIN = 'https://image.tmdb.org';
 
-// 创建缓存对象
 const cache = new Map();
-const CACHE_DURATION = 10 * 60 * 1000; // 10分钟缓存
-const MAX_CACHE_SIZE = 1000;
+const CACHE_DURATION = 10 * 60 * 1000;
 
-// 缓存清理函数
 function cleanExpiredCache() {
     const now = Date.now();
     for (const [key, value] of cache.entries()) {
@@ -15,120 +13,148 @@ function cleanExpiredCache() {
     }
 }
 
-// 检查缓存大小
-function checkCacheSize() {
-    if (cache.size > MAX_CACHE_SIZE) {
-        const entries = Array.from(cache.entries());
-        entries.sort((a, b) => a[1].expiry - b[1].expiry);
-        const deleteCount = cache.size - MAX_CACHE_SIZE;
-        entries.slice(0, deleteCount).forEach(([key]) => cache.delete(key));
-    }
-}
-
-// 定期清理缓存
 setInterval(cleanExpiredCache, CACHE_DURATION);
 
-export default async function handler(req, res) {
-    // 设置 CORS 头
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+export default async function handler(request, response) {
+    const url = new URL(request.url, `https://${request.headers.host}`);
+    const { pathname, searchParams } = url;
 
-    // 处理 OPTIONS 请求
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
+    response.setHeader('Access-Control-Allow-Origin', '*');
+    response.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    response.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    if (request.method === 'OPTIONS') {
+        return response.status(200).end();
     }
 
     try {
-        const { type, path, paths, url } = req.query;
+        if (pathname.startsWith('/3/') || pathname.startsWith('/4/')) {
+            const target = `${API_ORIGIN}${pathname}${url.search}`;
+            return await proxyRequest(request, response, target, false);
+        }
 
-        // 处理图片请求
+        if (pathname.startsWith('/t/p/')) {
+            const target = `${IMAGE_ORIGIN}${pathname}${url.search}`;
+            return await proxyRequest(request, response, target, true);
+        }
+
+        const type = searchParams.get('type');
+        const path = searchParams.get('path');
+        
+        if (type === 'tmdb' && path) {
+            const target = `${API_ORIGIN}/3/${path}${url.search.replace(`type=tmdb&path=${path}`, '').replace('&&', '&')}`;
+            return await proxyRequest(request, response, target, false);
+        }
+
         if (type === 'image' && path) {
             const cleanPath = path.replace(/^\//, '');
-            const imageUrl = `https://image.tmdb.org/t/p/original/${cleanPath}`;
-            
-            const response = await axios.get(imageUrl, {
-                responseType: 'arraybuffer'
-            });
-            
-            res.setHeader('Content-Type', response.headers['content-type'] || 'image/jpeg');
-            res.setHeader('Cache-Control', 'public, max-age=86400');
-            return res.status(200).send(response.data);
+            const target = `${IMAGE_ORIGIN}/t/p/original/${cleanPath}`;
+            return await proxyRequest(request, response, target, true);
         }
 
-        // 处理批量 TMDB 请求
-        if (type === 'tmdb' && paths) {
-            const pathArray = Array.isArray(paths) ? paths : [paths];
-            const requests = pathArray.map(singlePath => 
-                axios.get(`https://api.themoviedb.org/3/${singlePath}`)
-            );
-            
-            const responses = await Promise.all(requests);
-            const data = responses.map(response => response.data);
-            return res.status(200).json(data);
-        }
-
-        // 处理单个 TMDB 请求（带缓存）
-        if (type === 'tmdb' && path) {
-            const cacheKey = `tmdb:${path}`;
-            
-            // 检查缓存
-            if (cache.has(cacheKey)) {
-                const cachedData = cache.get(cacheKey);
-                if (Date.now() < cachedData.expiry) {
-                    return res.status(200).json(cachedData.data);
-                } else {
-                    cache.delete(cacheKey);
-                }
-            }
-
-            // 请求 TMDB API
-            const response = await axios.get(`https://api.themoviedb.org/3/${path}`);
-            
-            // 缓存成功响应
-            if (response.status === 200) {
-                checkCacheSize();
-                cache.set(cacheKey, {
-                    data: response.data,
-                    expiry: Date.now() + CACHE_DURATION
-                });
-            }
-            
-            return res.status(response.status).json(response.data);
-        }
-
-        // 通用代理
-        if (url) {
-            const response = await axios.get(url, {
-                responseType: 'arraybuffer',
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (compatible; Emby-TMDB-Proxy/1.0)'
-                }
-            });
-            
-            res.setHeader('Content-Type', response.headers['content-type'] || 'application/octet-stream');
-            return res.status(200).send(response.data);
-        }
-
-        // 没有匹配的参数
-        return res.status(400).json({ 
-            error: 'Missing parameters',
+        return response.status(200).json({
+            message: 'TMDB Proxy is running',
             usage: {
-                tmdb_single: '/api/proxy?type=tmdb&path=movie/550',
-                tmdb_batch: '/api/proxy?type=tmdb&paths[]=movie/550&paths[]=movie/551',
-                image: '/api/proxy?type=image&path=8UlWHLMpgZm9bx6QYh0NFoq67TZ.jpg',
-                generic: '/api/proxy?url=https://api.example.com/data'
+                api_direct: '/3/movie/550',
+                image_direct: '/t/p/w500/8UlWHLMpgZm9bx6QYh0NFoq67TZ.jpg',
+                api_legacy: '/api/proxy?type=tmdb&path=movie/550',
+                image_legacy: '/api/proxy?type=image&path=8UlWHLMpgZm9bx6QYh0NFoq67TZ.jpg'
             }
         });
 
     } catch (error) {
-        console.error('Proxy error:', error.message);
-        
-        const statusCode = error.response?.status || 500;
-        return res.status(statusCode).json({ 
-            error: 'Proxy server error',
-            message: error.message,
-            details: error.response?.data
+        console.error('Proxy error:', error);
+        return response.status(500).json({
+            error: 'Internal server error',
+            message: error.message
         });
+    }
+}
+
+async function proxyRequest(incomingRequest, response, targetUrl, isImage) {
+    if (!isImage) {
+        const cacheKey = targetUrl;
+        if (cache.has(cacheKey)) {
+            const cached = cache.get(cacheKey);
+            if (Date.now() < cached.expiry) {
+                response.setHeader('Content-Type', 'application/json');
+                response.setHeader('Cache-Control', 'public, max-age=600');
+                return response.status(200).json(cached.data);
+            }
+            cache.delete(cacheKey);
+        }
+    }
+
+    const hopByHop = new Set([
+        'connection',
+        'keep-alive',
+        'transfer-encoding',
+        'proxy-connection',
+        'upgrade',
+        'proxy-authenticate',
+        'proxy-authorization',
+        'te',
+        'trailers',
+        'host'
+    ]);
+
+    const headers = {};
+    for (const [key, value] of Object.entries(incomingRequest.headers)) {
+        if (!hopByHop.has(key.toLowerCase())) {
+            headers[key] = value;
+        }
+    }
+
+    headers['User-Agent'] = 'Mozilla/5.0 (compatible; TMDB-Proxy/1.0)';
+
+    try {
+        const fetchResponse = await fetch(targetUrl, {
+            method: incomingRequest.method,
+            headers: headers,
+            redirect: isImage ? 'follow' : 'manual'
+        });
+
+        if (!fetchResponse.ok) {
+            throw new Error(`HTTP ${fetchResponse.status}: ${fetchResponse.statusText}`);
+        }
+
+        for (const [key, value] of fetchResponse.headers) {
+            if (!hopByHop.has(key.toLowerCase())) {
+                response.setHeader(key, value);
+            }
+        }
+
+        response.setHeader('Access-Control-Allow-Origin', '*');
+
+        if (!isImage && fetchResponse.status === 200) {
+            const data = await fetchResponse.json();
+            
+            if (cache.size > 1000) {
+                const entries = Array.from(cache.entries());
+                entries.sort((a, b) => a[1].expiry - b[1].expiry);
+                entries.slice(0, 100).forEach(([key]) => cache.delete(key));
+            }
+            
+            cache.set(targetUrl, {
+                data: data,
+                expiry: Date.now() + CACHE_DURATION
+            });
+            
+            response.setHeader('Cache-Control', 'public, max-age=600');
+            return response.status(200).json(data);
+        }
+
+        if (isImage) {
+            const buffer = await fetchResponse.arrayBuffer();
+            response.setHeader('Cache-Control', 'public, max-age=86400');
+            return response.status(200).send(Buffer.from(buffer));
+        }
+
+        const data = await fetchResponse.text();
+        return response.status(fetchResponse.status).send(data);
+
+    } catch (error) {
+        console.error('Fetch error:', error);
+        throw error;
     }
 }
