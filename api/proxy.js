@@ -1,10 +1,11 @@
 import axios from 'axios';
+import http from 'http';
+import https from 'https';
 
 // 创建 axios 实例优化性能
 const axiosInstance = axios.create({
   timeout: 15000,
   maxRedirects: 5,
-  // 保持连接复用，提高并发性能
   httpAgent: new http.Agent({ keepAlive: true }),
   httpsAgent: new https.Agent({ keepAlive: true }),
   headers: {
@@ -12,7 +13,7 @@ const axiosInstance = axios.create({
   }
 });
 
-// 限制并发数，避免过多请求被限制
+// 并发队列类
 class ConcurrentQueue {
   constructor(maxConcurrent = 6) {
     this.maxConcurrent = maxConcurrent;
@@ -45,7 +46,7 @@ class ConcurrentQueue {
   }
 }
 
-const queue = new ConcurrentQueue(6); // 限制最大6个并发
+const queue = new ConcurrentQueue(6);
 
 export default async function handler(req, res) {
   try {
@@ -56,7 +57,9 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-    if (req.method === 'OPTIONS') return res.status(200).end();
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
 
     // 批量请求处理
     if (paths) {
@@ -76,39 +79,47 @@ export default async function handler(req, res) {
         );
         
         const results = await Promise.all(apiRequests);
-        res.status(200).json(results);
+        return res.status(200).json(results);
         
       } else if (type === 'image') {
-        // 图片直接返回 URL，让 Emby 自己处理并发下载
         const imageUrls = pathArray.map(singlePath => 
           `https://image.tmdb.org/t/p/original/${singlePath}`
         );
-        res.status(200).json(imageUrls);
+        return res.status(200).json(imageUrls);
       }
-      return;
+      
+      return res.status(400).json({ error: 'Invalid request type for batch processing' });
     }
 
     // 单个请求处理
     if (type === 'tmdb' && path) {
       const response = await axiosInstance.get(`https://api.themoviedb.org/3/${path}`);
-      res.status(200).json(response.data);
+      return res.status(200).json(response.data);
     } 
     else if (type === 'image' && path) {
-      // 图片重定向，减少服务器负载
-      res.redirect(302, `https://image.tmdb.org/t/p/original/${path}`);
+      return res.redirect(302, `https://image.tmdb.org/t/p/original/${path}`);
     }
     else if (url) {
       const response = await axiosInstance.get(url, { responseType: 'arraybuffer' });
-      // 设置正确的 headers
       res.setHeader('Content-Type', response.headers['content-type'] || 'application/octet-stream');
-      res.status(200).send(response.data);
+      return res.status(200).send(response.data);
     }
     else {
-      res.status(400).json({ error: 'Invalid parameters' });
+      return res.status(400).json({ 
+        error: 'Invalid parameters',
+        usage: {
+          batch_tmdb: '/api/proxy?type=tmdb&paths[]=movie/550&paths[]=movie/551',
+          batch_image: '/api/proxy?type=image&paths[]=abc123.jpg&paths[]=def456.jpg',
+          single_tmdb: '/api/proxy?type=tmdb&path=movie/550',
+          single_image: '/api/proxy?type=image&path=w500/abc123.jpg',
+          generic_proxy: '/api/proxy?url=https://api.example.com/data'
+        }
+      });
     }
   } catch (error) {
     console.error('Proxy error:', error.message);
-    res.status(error.response?.status || 500).json({ 
+    const status = error.response?.status || (error.code === 'ECONNABORTED' ? 504 : 500);
+    return res.status(status).json({ 
       error: 'Proxy server error',
       message: error.message
     });
