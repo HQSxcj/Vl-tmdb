@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const embyApiUrl = 'https://7.6080808.xyz'; // CF 隧道公网地址
+const embyApiUrl = 'https://k.6080808.xyz:16666'; // CF 隧道公网地址
 const embyApiKey = 'YOUR_EMBY_TMDB_API_KEY'; // Emby TMDB 插件 API Key
 
 export default async function handler(req, res) {
