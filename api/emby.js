@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const embyApiUrl = 'http://your-emby-server/api'; // 替换为你的 Emby 服务器地址
+const embyApiUrl = 'http://7.6080808.xyz'; // 替换为你的 Emby 服务器地址
 const embyApiKey = 'YOUR_EMBY_TMDB_API_KEY';     // 替换为 Emby TMDB 插件 API key
 
 export default async function handler(req, res) {
