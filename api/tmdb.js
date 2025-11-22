@@ -1,11 +1,13 @@
 const API_ORIGIN = 'https://api.themoviedb.org';
 const IMAGE_ORIGIN = 'https://image.tmdb.org';
 
-export const config = { runtime: 'edge' };
+export const config = {
+  runtime: 'edge',
+};
 
-export default async function handler(request, context) {
+export default async function handler(request) {
   const url = new URL(request.url);
-  let { pathname, search } = url;
+  let { pathname, search, origin } = url;
 
   if (pathname.startsWith('/api/tmdb')) {
     pathname = pathname.replace('/api/tmdb', '');
@@ -15,59 +17,45 @@ export default async function handler(request, context) {
     const pathParam = url.searchParams.get('path') || '';
     if (pathParam) {
       pathname = pathParam.startsWith('/') ? pathParam : '/' + pathParam;
-      const newSearchParams = new URLSearchParams(url.searchParams);
-      newSearchParams.delete('path');
-      search = newSearchParams.toString() ? '?' + newSearchParams.toString() : '';
+      const sp = new URLSearchParams(url.searchParams);
+      sp.delete('path');
+      search = sp.toString() ? '?' + sp.toString() : '';
     }
   }
 
   if (pathname.startsWith('/3/') || pathname.startsWith('/4/')) {
-    const target = `${API_ORIGIN}${pathname}${search}`;
-    return proxy(request, target);
+    return proxy(request, `${API_ORIGIN}${pathname}${search}`);
   }
 
   if (pathname.startsWith('/t/p/')) {
-    const target = `${IMAGE_ORIGIN}${pathname}${search}`;
-    return proxy(request, target, true);
+    return proxy(request, `${IMAGE_ORIGIN}${pathname}${search}`);
   }
 
-  if (
-    pathname.includes('fanart.tv') ||
-    pathname.includes('imdb.com') ||
-    pathname.includes('omdbapi.com') ||
-    pathname.includes('thetvdb.com')
-  ) {
-    const target = url.href;
-    return proxy(request, target, true);
+  if (url.hostname.includes('fanart.tv')) {
+    return proxy(request, url.toString());
   }
 
-  return new Response('OK: use /3/... or /4/... for API, /t/p/... for images, or full image URL for other providers', {
+  return new Response('OK', {
     status: 200,
     headers: { 'Content-Type': 'text/plain; charset=utf-8' }
   });
 }
 
-async function proxy(incomingRequest, targetUrl, isImage = false) {
-  const hopByHop = new Set([
-    'connection',
-    'keep-alive',
-    'transfer-encoding',
-    'proxy-connection',
-    'upgrade',
-    'proxy-authenticate',
-    'proxy-authorization',
-    'te',
-    'trailers'
+async function proxy(incomingRequest, targetUrl) {
+  const hop = new Set([
+    'connection','keep-alive','transfer-encoding','proxy-connection',
+    'upgrade','proxy-authenticate','proxy-authorization','te','trailers'
   ]);
 
   const reqHeaders = new Headers();
   for (const [k, v] of incomingRequest.headers) {
-    if (!hopByHop.has(k.toLowerCase()) && k.toLowerCase() !== 'host') {
+    if (!hop.has(k.toLowerCase()) && k.toLowerCase() !== 'host') {
       reqHeaders.append(k, v);
     }
   }
 
-  if (isImage) reqHeaders.set('User-Agent', 'Mozilla/5.0 (compatible; Cf-Image-Proxy/1.0)');
+  const isImage = targetUrl.includes('image.tmdb.org') ||
+                  targetUrl.includes('fanart.tv');
 
   const init = {
     method: incomingRequest.method,
@@ -76,28 +64,23 @@ async function proxy(incomingRequest, targetUrl, isImage = false) {
     redirect: isImage ? 'follow' : 'manual'
   };
 
-  const upstreamRes = await fetch(targetUrl, init);
+  const upstream = await fetch(targetUrl, init);
 
   const resHeaders = new Headers();
-  for (const [k, v] of upstreamRes.headers) {
-    if (!hopByHop.has(k.toLowerCase())) {
+  for (const [k, v] of upstream.headers) {
+    if (!hop.has(k.toLowerCase())) {
       resHeaders.append(k, v);
     }
   }
 
-  if (isImage) {
-    resHeaders.set('Access-Control-Allow-Origin', '*');
-    resHeaders.set('Cache-Control', 'public, max-age=86400');
-  }
-
-  return new Response(upstreamRes.body, {
-    status: upstreamRes.status,
-    statusText: upstreamRes.statusText,
+  return new Response(upstream.body, {
+    status: upstream.status,
+    statusText: upstream.statusText,
     headers: resHeaders
   });
 }
 
-function needsBody(method) {
-  const m = method.toUpperCase();
+function needsBody(m) {
+  m = m.toUpperCase();
   return m !== 'GET' && m !== 'HEAD';
 }
