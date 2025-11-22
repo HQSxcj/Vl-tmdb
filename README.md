@@ -29,20 +29,13 @@
 2. 连接 **Vercel**：  
    - 点击上方 **Deploy to Vercel** 按钮  
    - 授权 GitHub 账户  
-   - 选择 **CV-tmdb** 仓库  
-   - 在项目设置中，根目录选择 `project`
+   - 选择 **Vl-tmdb** 仓库  
 
-3. 部署 **Cloudflare Workers**：  
-   - 点击上方 **Deploy to Cloudflare** 按钮  
-   - 创建 **Cloudflare** 账户（如没有）  
-   - 在 **Workers** 页面创建新服务  
-   - 将 `workers/src/index.js` 内容复制到 **Workers 编辑器**
 
-4. 部署完两个项目绑定自定义域名，也就是托管在 cloudflare 的域名的子域名
-   - workers 绑定自定义域名 → worker 项目主页 → 设置 → 域和路由 
-→ 添加 → 自定义域 → 输入一个子域名 例:abc.com 子域名可: c.abc.com 点击 部署
+3. 部署完项目绑定自定义域名，也就是托管在 cloudflare 的域名的子域名
 
-   - vercel 绑定子域名
+   - vercel 绑定子域名 → 点开项目主页 → 右上角 Domains(域名） → Add Domain)添加域名 → 填个 cloudflare 托管主域名的子域名 例:主 abc.com 子域名可以:vl.abc.com  → Save(保存）→ 点开红色字体旁的 learn more → 点击 Configure Automatically(自动配置）
+就跳转进 couldflare 网站 点击 授权  然后回到这个页面 就绑定成功了
 
 #使用方式
 
