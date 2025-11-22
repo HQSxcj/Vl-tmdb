@@ -60,3 +60,26 @@ Emby 神医助手配置
 
    充分利用两个网站的的项目优势去智能组合刮削，并进一步节省单个网站请求，避免触发免费范围限制
 
+## Vercel Hobby 计划 最新限制（官方数据）
+
+| 分类 | 限制 / 配额 |
+|---|---|
+| **一般资源** | 项目数上限：200 个  [oai_citation:0‡Vercel](https://vercel.com/docs/limits?utm_source=chatgpt.com) |
+| | 每日部署 (Deployments)：100 次 / 天  [oai_citation:1‡Vercel](https://vercel.com/docs/limits?utm_source=chatgpt.com) |
+| | 并行构建 (Concurrent Builds)：1 个  [oai_citation:2‡Vercel](https://vercel.com/docs/limits/overview?utm_source=chatgpt.com) |
+| | 构建时间 (单次 Build)：最长期限 45 分钟  [oai_citation:3‡Vercel](https://vercel.com/docs/limits?utm_source=chatgpt.com) |
+| | 静态文件上传 (CLI)：最大 100 MB  [oai_citation:4‡Vercel](https://vercel.com/docs/limits/overview?utm_source=chatgpt.com) |
+| | Cron Jobs：每账号 **2 个**  [oai_citation:5‡Vercel](https://vercel.com/docs/limits?utm_source=chatgpt.com) |
+| **函数 /计算资源** | 活跃 CPU (Active CPU)：4 CPU-小时 / 月  [oai_citation:6‡Vercel](https://vercel.com/docs/plans/hobby?utm_source=chatgpt.com) |
+| | 配置内存 (Provisioned Memory)：360 GB-小时 / 月  [oai_citation:7‡Vercel](https://vercel.com/docs/limits/overview?utm_source=chatgpt.com) |
+| | 函数调用次数 (Invocations)：1,000,000 次 / 月  [oai_citation:8‡Vercel](https://vercel.com/docs/plans/hobby?utm_source=chatgpt.com) |
+| | 函数运行时长 (Function Duration)：100 GB-小时 / 月  [oai_citation:9‡Vercel](https://vercel.com/docs/plans/hobby?utm_source=chatgpt.com) |
+| **网络 /传输** | 快速数据传输 (Fast Data Transfer)：100 GB / 月  [oai_citation:10‡Vercel](https://vercel.com/docs/limits?utm_source=chatgpt.com) |
+| | 快速回源 (Fast Origin Transfer)：最多 10 GB / 月  [oai_citation:11‡Vercel](https://vercel.com/docs/limits/overview?utm_source=chatgpt.com) |
+| **图片优化** | Source Images (图像优化源图)：1,000 张 / 月  [oai_citation:12‡Vercel](https://vercel.com/docs/plans/hobby?utm_source=chatgpt.com) |
+| **日志** | 运行时日志 (Runtime Logs)：保留 1 小时 (最多 ~ 4,000 行)  [oai_citation:13‡Vercel](https://vercel.com/docs/plans/hobby?utm_source=chatgpt.com) |
+| **用途限制** | 仅限个人 / 非商业用途  [oai_citation:14‡Vercel](https://vercel.com/docs/plans/hobby?utm_source=chatgpt.com) |
+| **构建配额** | 构建执行时间 (Build Execution)：100 小时 / 月  [oai_citation:15‡Vercel](https://vercel.com/docs/limits?utm_source=chatgpt.com) |
+
+---
+
