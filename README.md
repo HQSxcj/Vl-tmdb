@@ -7,8 +7,7 @@
 
 ## 🚀 一键部署（两个都要部署）
 
-[![Deploy to Vercel](https://vercel.com/button)](https://vercel.com/button)
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy/workers.cloudflare.com/button)
+
 
 ## 📋 必备要素
 
