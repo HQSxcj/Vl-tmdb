@@ -5,6 +5,10 @@
 
 不需要借助修改 host 节点方法和魔法网络工具代理。
 
+＜ 打个广告🌟 emby-nginx助手[ GitHub 地址](https://github.com/HQSxcj/emby-nginx) ＞
+
+**网盘媒体服务器专家级 Nginx 工具**
+
 ## 🚀 一键部署（两个都要部署）
 
 # Vl-tmdb - TMDB 图片代理
