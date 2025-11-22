@@ -7,7 +7,13 @@
 
 ## 🚀 一键部署（两个都要部署）
 
+# Vl-tmdb - TMDB 图片代理
 
+[![Deploy to Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/HQSxcj/Vl-tmdb)
+
+# Cf-tmdb - TMDB API 代理
+
+[![Open in Cloudflare Dashboard](https://img.shields.io/badge/Open%20in-Cloudflare%20Dashboard-orange?style=for-the-badge&logo=cloudflare)](https://dash.cloudflare.com/)
 
 ## 📋 必备要素
 
