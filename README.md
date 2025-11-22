@@ -13,7 +13,7 @@
 
 #  跳转至 Cf-tmdb 仓库 部署 API 代理
 
-[![跳转Cf-tmdb仓库](https://img.shields.io/badge/Open%20in-Cloudflare%20Dashboard-orange?style=for-the-badge&logo=cloudflare)](https://dash.cloudflare.com/)
+[![跳转到 Cf-tmdb](https://img.shields.io/badge/跳转到-Cf--tmdb%20仓库-blue?style=for-the-badge&logo=github)](https://github.com/HQSxcj/Cf-tmdb)
 
 ## 📋 必备要素
 
