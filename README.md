@@ -11,7 +11,7 @@
 
 [![Deploy to Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/HQSxcj/Vl-tmdb)
 
-# Cf-tmdb - TMDB API 代理
+#  跳转至 Cf-tmdb 仓库 部署 API 代理
 
 [![跳转Cf-tmdb仓库](https://img.shields.io/badge/Open%20in-Cloudflare%20Dashboard-orange?style=for-the-badge&logo=cloudflare)](https://dash.cloudflare.com/)
 
