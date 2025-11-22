@@ -37,7 +37,7 @@
    - vercel 绑定子域名 → 点开项目主页 → 右上角 Domains(域名） → Add Domain)添加域名 → 填个 cloudflare 托管主域名的子域名 例:主 abc.com 子域名可以:vl.abc.com  → Save(保存）→ 点开红色字体旁的 learn more → 点击 Configure Automatically(自动配置）
 就跳转进 couldflare 网站 点击 授权  然后回到这个页面 就绑定成功了
 
-#使用方式
+# 使用方式
 
 Emby 神医助手配置
 
