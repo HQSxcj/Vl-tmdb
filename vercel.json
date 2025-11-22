@@ -1,0 +1,19 @@
+{
+
+  "buildCommand": "echo 'No build step required'",
+
+  "outputDirectory": "public",
+
+  "rewrites": [
+
+    {
+
+      "source": "/(.*)",
+
+      "destination": "/api/tmdb?path=$1"
+
+    }
+
+  ]
+
+}
