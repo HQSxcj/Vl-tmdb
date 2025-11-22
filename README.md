@@ -58,28 +58,92 @@ Emby 神医助手配置
    emby 通过接收到的 json 信息里的图片字符串拼接出完整的图片url链接
    返回图片url链接让 Vercel 的 cdn 优秀的图像缓存处理后一步刮削海报图片
 
-   充分利用两个网站的的项目优势去智能组合刮削，并进一步节省单个网站请求，避免触发免费范围限制
+   充分利用两个网站的的项目优势去智能组合刮削，并进一步节省单个网站请求，避免触发免费范围📦 Vercel Hobby 免费套餐 — 卡片式限制说明（简体中文）
 
-## Vercel Hobby 计划 最新限制（官方数据）
+##Vercel Hobby 免费套餐 — 限制说明
+🧱 项目与部署
 
-| 分类 | 限制 / 配额 |
-|---|---|
-| **一般资源** | 项目数上限：200 个  [oai_citation:0‡Vercel](https://vercel.com/docs/limits?utm_source=chatgpt.com) |
-| | 每日部署 (Deployments)：100 次 / 天  [oai_citation:1‡Vercel](https://vercel.com/docs/limits?utm_source=chatgpt.com) |
-| | 并行构建 (Concurrent Builds)：1 个  [oai_citation:2‡Vercel](https://vercel.com/docs/limits/overview?utm_source=chatgpt.com) |
-| | 构建时间 (单次 Build)：最长期限 45 分钟  [oai_citation:3‡Vercel](https://vercel.com/docs/limits?utm_source=chatgpt.com) |
-| | 静态文件上传 (CLI)：最大 100 MB  [oai_citation:4‡Vercel](https://vercel.com/docs/limits/overview?utm_source=chatgpt.com) |
-| | Cron Jobs：每账号 **2 个**  [oai_citation:5‡Vercel](https://vercel.com/docs/limits?utm_source=chatgpt.com) |
-| **函数 /计算资源** | 活跃 CPU (Active CPU)：4 CPU-小时 / 月  [oai_citation:6‡Vercel](https://vercel.com/docs/plans/hobby?utm_source=chatgpt.com) |
-| | 配置内存 (Provisioned Memory)：360 GB-小时 / 月  [oai_citation:7‡Vercel](https://vercel.com/docs/limits/overview?utm_source=chatgpt.com) |
-| | 函数调用次数 (Invocations)：1,000,000 次 / 月  [oai_citation:8‡Vercel](https://vercel.com/docs/plans/hobby?utm_source=chatgpt.com) |
-| | 函数运行时长 (Function Duration)：100 GB-小时 / 月  [oai_citation:9‡Vercel](https://vercel.com/docs/plans/hobby?utm_source=chatgpt.com) |
-| **网络 /传输** | 快速数据传输 (Fast Data Transfer)：100 GB / 月  [oai_citation:10‡Vercel](https://vercel.com/docs/limits?utm_source=chatgpt.com) |
-| | 快速回源 (Fast Origin Transfer)：最多 10 GB / 月  [oai_citation:11‡Vercel](https://vercel.com/docs/limits/overview?utm_source=chatgpt.com) |
-| **图片优化** | Source Images (图像优化源图)：1,000 张 / 月  [oai_citation:12‡Vercel](https://vercel.com/docs/plans/hobby?utm_source=chatgpt.com) |
-| **日志** | 运行时日志 (Runtime Logs)：保留 1 小时 (最多 ~ 4,000 行)  [oai_citation:13‡Vercel](https://vercel.com/docs/plans/hobby?utm_source=chatgpt.com) |
-| **用途限制** | 仅限个人 / 非商业用途  [oai_citation:14‡Vercel](https://vercel.com/docs/plans/hobby?utm_source=chatgpt.com) |
-| **构建配额** | 构建执行时间 (Build Execution)：100 小时 / 月  [oai_citation:15‡Vercel](https://vercel.com/docs/limits?utm_source=chatgpt.com) |
+📌 项目上限：200 个
 
----
+适合个人多项目存放，但不适合大量子项目分仓库。
+
+📌 部署限制：每日最多 100 次
+
+过多 CI 推送会触发限制，建议合并提交或手动触发。
+
+📌 并行构建：1 个
+
+同时发起多次部署会排队，团队协作时需注意。
+
+📌 构建时间：单次最多约 45 分钟
+
+构建过慢会被中断，需要优化构建或减少步骤。
+
+📌 CLI 上传文件大小：100 MB
+
+大文件请使用外部对象存储（S3、COS、OSS 等）。
+
+⸻
+
+⚙️ 函数与执行资源
+
+📌 活跃 CPU：4 CPU-小时 / 月
+
+计算型任务过多会触发冻结，建议做好缓存或迁移到后端服务。
+
+📌 内存配额：360 GB-小时 / 月
+
+高内存函数运行久会快速消耗配额。
+
+📌 函数调用：100 万次 / 月
+
+适用于轻量 API；高流量接口需使用缓存或外部服务器。
+
+📌 函数运行时长：100 GB-小时 / 月
+
+运行时间 × 内存越高，消耗越快。
+
+⸻
+
+🌐 流量与传输
+
+📌 快速数据传输：约 100 GB / 月
+
+托管大流量网站可能达到上限，建议使用 CDN 或对象存储。
+
+📌 快速回源：约 10 GB / 月
+
+频繁回源热点文件会消耗很快，应让静态资源保持高缓存率。
+
+⸻
+
+🖼 图片优化相关
+
+📌 源图片处理上限：1,000 张 / 月
+
+适合博客、小站；不适合大量动态裁图与多尺寸图像生成。
+
+⸻
+
+📄 日志与调试
+
+📌 Runtime Logs：仅保留 1 小时
+
+重要日志请外接日志服务（如 Logtail、Datadog）。
+
+⸻
+
+⏰ 定时任务
+
+📌 Cron Jobs：每账号最多 2 个
+
+单账号仅能设置两个定时任务；更多任务需升级或使用 GitHub Actions。
+
+⸻
+
+💼 用途限制
+
+📌 仅允许个人 / 非商业使用
+
+Hobby 不适合用于商业产品或要求高 SLA 的场景。
 
