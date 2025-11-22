@@ -11,11 +11,11 @@
 
 ## 🚀 一键部署（两个都要部署）
 
-# Vl-tmdb - TMDB 图片代理
+## Vl-tmdb - TMDB 图片代理
 
 [![Deploy to Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/HQSxcj/Vl-tmdb)
 
-#  跳转至 Cf-tmdb 仓库 部署 API 代理
+## 跳转至 Cf-tmdb 仓库 部署 API 代理
 
 [![跳转到 Cf-tmdb](https://img.shields.io/badge/跳转到-Cf--tmdb%20仓库-blue?style=for-the-badge&logo=github)](https://github.com/HQSxcj/Cf-tmdb)
 
